@@ -65,25 +65,36 @@ def get_valid_states(repo_desc, state, constraints):
     else:
         constraint = constraints.pop()
         if constraint['type'] == 'absent':
-            print('absent', constraint['names'])
+            print('absent', constraint['name'])
             to_remove_from_state = []
-            for namever in constraint['names']:
-                name, version_match_f = split_namever(namever)
-                for installed_package in state:
-                    installed_package_name, installed_package_version = installed_package
-                    if installed_package_name == name and version_match_f(installed_package_version):
-                        to_remove_from_state.append(installed_package)
+            namever = constraint['name']
+            name, version_match_f = split_namever(namever)
+            for installed_package in state:
+                installed_package_name, installed_package_version = installed_package
+                if installed_package_name == name and version_match_f(installed_package_version):
+                    to_remove_from_state.append(installed_package)
             for package_to_remove in to_remove_from_state:
                 state.remove(package_to_remove)
             yield from get_valid_states(repo_desc, state, constraints)
         elif constraint['type'] == 'present':
-            print('present', constraint['names'])
-            for namever in constraint['names']:
-                name, version_match_f = split_namever(namever)
-                for package in repo_desc:
-                    if package['name'] == name and version_match_f(package['version']):
-                        constraints += map(lambda dg: {'type': 'present', 'names': dg}, package.get('depends', []))
-                        for substate in get_valid_states(repo_desc, state, constraints):
+            print('present', constraint['name'])
+            namever = constraint['name']
+            name, version_match_f = split_namever(namever)
+            for package in repo_desc:
+                if package['name'] == name and version_match_f(package['version']):
+                    possible_states = [state]
+                    for dependency_group in package.get('depends', []):
+                        new_possible_states = []
+                        for dependency_namever in dependency_group:
+                            dependency_name, dependency_version_match_f = split_namever(namever)
+                            for potential_dependency_package in repo_desc:
+                                if potential_dependency_package['name'] == dependency_name and dependency_version_match_f(potential_dependency_package['version']):
+                                    for possible_state in possible_states:
+                                        extra_state = potential_dependency_package['name'], potential_dependency_package['version']
+                                        new_possible_states += list(get_valid_states(repo_desc, state + [extra_state], constraints))
+                        possible_states = new_possible_states
+                    for possible_state in possible_states:
+                        for substate in get_valid_states(repo_desc, possible_state, constraints):
                             yield substate + [(name, package['version'])]
         else:
             assert False # nonexistent constraint type

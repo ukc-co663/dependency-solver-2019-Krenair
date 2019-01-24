@@ -1,6 +1,6 @@
 [
 	{
 		"type": "present",
-		"names": ["A"]
+		"name": "A"
 	}
 ]

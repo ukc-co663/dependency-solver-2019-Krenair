@@ -1,10 +1,10 @@
 [
 	{
 		"type": "present",
-		"names": ["A"]
+		"name": "A"
 	},
 	{
 		"type": "absent",
-		"names": []
+		"name": "B"
 	}
 ]
