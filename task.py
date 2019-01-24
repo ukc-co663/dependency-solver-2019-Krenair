@@ -64,10 +64,10 @@ def get_valid_states(repo_desc, state, constraints):
             yield state
     else:
         constraint = constraints.pop()
-        if constraint['type'] == 'absent':
-            print('absent', constraint['name'])
+        if constraint[0] == '-':
+            print('absent', constraint[1:])
             to_remove_from_state = []
-            namever = constraint['name']
+            namever = constraint[1:]
             name, version_match_f = split_namever(namever)
             for installed_package in state:
                 installed_package_name, installed_package_version = installed_package
@@ -76,9 +76,9 @@ def get_valid_states(repo_desc, state, constraints):
             for package_to_remove in to_remove_from_state:
                 state.remove(package_to_remove)
             yield from get_valid_states(repo_desc, state, constraints)
-        elif constraint['type'] == 'present':
-            print('present', constraint['name'])
-            namever = constraint['name']
+        elif constraint[0] == '+':
+            print('present', constraint[1:])
+            namever = constraint[1:]
             name, version_match_f = split_namever(namever)
             for package in repo_desc:
                 if package['name'] == name and version_match_f(package['version']):
