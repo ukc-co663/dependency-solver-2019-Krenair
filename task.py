@@ -80,16 +80,16 @@ def get_valid_states(repo_desc, state, constraints):
             name, version_match_f = split_namever(namever)
             for package in repo_desc:
                 if package['name'] == name and version_match_f(package['version']):
-                    possible_states = [state]
+                    possible_states = [state + [(package['name'], package['version'])]]
                     for dependency_group in package.get('depends', []):
                         new_possible_states = []
                         for dependency_namever in dependency_group:
-                            dependency_name, dependency_version_match_f = split_namever(namever)
+                            dependency_name, dependency_version_match_f = split_namever(dependency_namever)
                             for potential_dependency_package in repo_desc:
                                 if potential_dependency_package['name'] == dependency_name and dependency_version_match_f(potential_dependency_package['version']):
                                     for possible_state in possible_states:
                                         extra_state = potential_dependency_package['name'], potential_dependency_package['version']
-                                        new_possible_states += list(get_valid_states(repo_desc, state + [extra_state], constraints))
+                                        new_possible_states += list(get_valid_states(repo_desc, possible_state + [extra_state], constraints))
                         possible_states = new_possible_states
                     for possible_state in possible_states:
                         for substate in get_valid_states(repo_desc, possible_state, constraints):
