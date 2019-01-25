@@ -35,7 +35,6 @@ def get_valid_states(repo_desc, state, constraints):
     if len(constraints) == 0:
         # return state only if it is valid, e.g. not having any conflicts, all dependencies being satisfied
         print('no constraints left, considering state', state)
-        valid = True
         for package, version in state:
             for repo_package in repo_desc:
                 if package == repo_package['name'] and version == repo_package['version']:
@@ -60,8 +59,7 @@ def get_valid_states(repo_desc, state, constraints):
                     break
             else:
                 assert False # package name+version combo does not exist (!)
-        if valid:
-            yield state
+        yield state
     else:
         constraint = constraints.pop()
         if constraint[0] == '-':
