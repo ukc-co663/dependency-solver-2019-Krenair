@@ -101,7 +101,10 @@ def get_states(repo_desc, state, constraints):
                         possible_states = new_possible_states
                     for possible_state in possible_states:
                         for substate in get_states(repo_desc, possible_state, constraints):
-                            yield substate + [(name, package['version'])]
+                            new_package = name, package['version']
+                            if new_package not in substate:
+                                substate.append(new_package)
+                            yield substate
         else:
             assert False # nonexistent constraint type
 
