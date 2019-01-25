@@ -28,6 +28,9 @@ def split_namever(namever):
     elif '>' in namever:
         name, version = namever.split('>')
         return name, lambda pv: pv > version
+    elif '=' in namever:
+        name, version = namever.split('=')
+        return name, lambda pv: pv == version
     else:
         return namever, lambda _: True
 
