@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+# Author: Alex Monk <am2121@kent.ac.uk>
+# For CO633
 # TODO: make state be a list of strings with package name equals version
 import json
 import copy
