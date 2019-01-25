@@ -51,13 +51,14 @@ def get_valid_states(repo_desc, state, constraints):
                         for dependency_namever in dependency_group:
                             # one of these dependencies in each dependency group must be present
                             name, version_match_f = split_namever(dependency_namever)
-                            for depend_package in repo_desc:
-                                if depend_package['name'] == name and version_match_f(depend_package['version']):
+                            for installed_name, installed_version in state:
+                                if installed_name == name and version_match_f(installed_version):
                                     dg_satisfied = True
                                     break
                             if dg_satisfied:
                                 break
                         if not dg_satisfied:
+                            print('Dependency missing', repo_package, dependency_group, state)
                             return
                     break
             else:
@@ -92,6 +93,7 @@ def get_valid_states(repo_desc, state, constraints):
                                 if potential_dependency_package['name'] == dependency_name and dependency_version_match_f(potential_dependency_package['version']):
                                     for possible_state in possible_states:
                                         extra_state = potential_dependency_package['name'], potential_dependency_package['version']
+                                        # TODO: add in constraints for dependencies?
                                         new_possible_states += list(get_valid_states(repo_desc, possible_state + [extra_state], constraints))
                         possible_states = new_possible_states
                     for possible_state in possible_states:
