@@ -34,35 +34,38 @@ def split_namever(namever):
     else:
         return namever, lambda _: True
 
-def get_valid_states(repo_desc, state, constraints):
-    if len(constraints) == 0:
-        # return state only if it is valid, e.g. not having any conflicts, all dependencies being satisfied
-        print('no constraints left, considering state', state)
-        for package, version in state:
-            for repo_package in repo_desc:
-                if package == repo_package['name'] and version == repo_package['version']:
-                    for conflict_namever in repo_package.get('conflicts', []):
-                        name, version_match_f = split_namever(conflict_namever)
+def is_state_valid(repo_desc, state):
+    # not having any conflicts, all dependencies being satisfied
+    print('considering state', state)
+    for package, version in state:
+        for repo_package in repo_desc:
+            if package == repo_package['name'] and version == repo_package['version']:
+                for conflict_namever in repo_package.get('conflicts', []):
+                    name, version_match_f = split_namever(conflict_namever)
+                    for installed_name, installed_version in state:
+                        if installed_name == name and version_match_f(installed_version):
+                            return False
+                for dependency_group in repo_package.get('depends', []):
+                    dg_satisfied = False
+                    for dependency_namever in dependency_group:
+                        # one of these dependencies in each dependency group must be present
+                        name, version_match_f = split_namever(dependency_namever)
                         for installed_name, installed_version in state:
                             if installed_name == name and version_match_f(installed_version):
-                                return
-                    for dependency_group in repo_package.get('depends', []):
-                        dg_satisfied = False
-                        for dependency_namever in dependency_group:
-                            # one of these dependencies in each dependency group must be present
-                            name, version_match_f = split_namever(dependency_namever)
-                            for installed_name, installed_version in state:
-                                if installed_name == name and version_match_f(installed_version):
-                                    dg_satisfied = True
-                                    break
-                            if dg_satisfied:
+                                dg_satisfied = True
                                 break
-                        if not dg_satisfied:
-                            print('Dependency missing', repo_package, dependency_group, state)
-                            return
-                    break
-            else:
-                assert False # package name+version combo does not exist (!)
+                        if dg_satisfied:
+                            break
+                    if not dg_satisfied:
+                        print('Dependency missing', repo_package, dependency_group, state)
+                        return False
+                break
+        else:
+            assert False # package name+version combo does not exist (!)
+    return True
+
+def get_states(repo_desc, state, constraints):
+    if len(constraints) == 0:
         yield state
     else:
         constraint = constraints.pop()
@@ -77,7 +80,7 @@ def get_valid_states(repo_desc, state, constraints):
                     to_remove_from_state.append(installed_package)
             for package_to_remove in to_remove_from_state:
                 state.remove(package_to_remove)
-            yield from get_valid_states(repo_desc, state, constraints)
+            yield from get_states(repo_desc, state, constraints)
         elif constraint[0] == '+':
             print('present', constraint[1:])
             namever = constraint[1:]
@@ -94,15 +97,16 @@ def get_valid_states(repo_desc, state, constraints):
                                     for possible_state in possible_states:
                                         extra_state = potential_dependency_package['name'], potential_dependency_package['version']
                                         # TODO: add in constraints for dependencies?
-                                        new_possible_states += list(get_valid_states(repo_desc, possible_state + [extra_state], constraints))
+                                        new_possible_states += list(get_states(repo_desc, possible_state + [extra_state], constraints))
                         possible_states = new_possible_states
                     for possible_state in possible_states:
-                        for substate in get_valid_states(repo_desc, possible_state, constraints):
+                        for substate in get_states(repo_desc, possible_state, constraints):
                             yield substate + [(name, package['version'])]
         else:
             assert False # nonexistent constraint type
 
-for state in get_valid_states(init_repo_desc, init_state, init_constraints):
-    print('end state', state)
+for state in get_states(init_repo_desc, init_state, init_constraints):
+    if is_state_valid(init_repo_desc, state):
+        print('end state', state)
 
 # TODO: what about multiple versions of the same package?
