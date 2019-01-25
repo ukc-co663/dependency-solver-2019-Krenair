@@ -43,8 +43,8 @@ def get_valid_states(repo_desc, state, constraints):
                 if package == repo_package['name'] and version == repo_package['version']:
                     for conflict_namever in repo_package.get('conflicts', []):
                         name, version_match_f = split_namever(conflict_namever)
-                        for conflict_package in repo_desc:
-                            if conflict_package['name'] == name and version_match_f(conflict_package['version']):
+                        for installed_name, installed_version in state:
+                            if installed_name == name and version_match_f(installed_version):
                                 return
                     for dependency_group in repo_package.get('depends', []):
                         dg_satisfied = False
