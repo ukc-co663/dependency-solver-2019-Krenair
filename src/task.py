@@ -113,5 +113,3 @@ def get_states(repo_desc, state, constraints):
 for state in get_states(init_repo_desc, init_state, init_constraints):
     if is_state_valid(init_repo_desc, state):
         print('end state', state)
-
-# TODO: what about multiple versions of the same package?
