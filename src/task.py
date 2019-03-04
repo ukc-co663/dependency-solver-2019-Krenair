@@ -13,8 +13,7 @@
 # TODO: seen 8: no states output, but all tests should have solutions - 0 marks
 # TODO: seen 9: traceback as = state stuff gets into tuple list state format - 0 marks
 
-# TODO: Docker
-# TODO: output state in the original format
+# TODO: output each state in the right order?
 # TODO: keep track of installations/removals in each call
 # TODO: assign cost to each potential solution and use it to return best result
 import copy
@@ -25,7 +24,9 @@ with open(sys.argv[1]) as f:
     init_repo_desc = json.load(f)
 
 with open(sys.argv[2]) as f:
-    init_state = json.load(f) # TODO: convert into our internal format to handle tests 4, 5 and 9
+    init_state = json.load(f)
+
+init_state = list(map(lambda s: tuple(s.split('=')), init_state))
 
 with open(sys.argv[3]) as f:
     init_constraints = json.load(f)
