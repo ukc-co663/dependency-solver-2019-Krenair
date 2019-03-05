@@ -13,19 +13,21 @@
 # TODO: seen 8: this kills the computer - 0 marks
 # seen 9 - +2 marks
 # TODO: output each state/commands in the right order?
+import argparse
 import json
-import sys
 
-with open(sys.argv[1]) as f:
-    init_repo_desc = json.load(f)
+argparser = argparse.ArgumentParser()
+argparser.add_argument('repository', type=argparse.FileType('r'))
+argparser.add_argument('state', type=argparse.FileType('r'))
+argparser.add_argument('constraints', type=argparse.FileType('r'))
+args = argparser.parse_args()
 
-with open(sys.argv[2]) as f:
-    init_state = json.load(f)
+init_repo_desc = json.load(args.repository)
 
+init_state = json.load(args.state)
 init_state = list(map(lambda s: tuple(s.split('=')), init_state))
 
-with open(sys.argv[3]) as f:
-    init_constraints = json.load(f)
+init_constraints = json.load(args.constraints)
 
 #print('Initial repository:', init_repo_desc)
 #print('Initial state:', init_state)
