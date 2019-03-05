@@ -13,7 +13,6 @@
 # TODO: seen 8: no states output, but all tests should have solutions - 0 marks
 # seen 9: might work - +2 mark?
 # TODO: output each state/commands in the right order?
-import copy
 import json
 import sys
 
