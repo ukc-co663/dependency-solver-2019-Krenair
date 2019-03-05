@@ -5,7 +5,7 @@
 # seen 0: all output states look OK - +2 marks?
 # TODO: seen 1: this kills the computer - 0 marks
 # TODO: seen 2: no states output, but all tests should have solutions - 0 marks
-# TODO: seen 3: produces one good result result but not the other, A and D... probably because A has not been installed by the time it considers D? loop? - 0 marks
+# TODO: seen 3: produces one good result result but not the other, A,B,D... probably because A has not been installed by the time it considers D? loop? - 0 marks
 # TODO: seen 4: no states output, but all tests should have solutions - 0 marks
 # TODO: seen 5: looks good, but could remove initial state B=3 and get lots more pairs such as B=2,A=3 and B=1,A=2 and B=1,A=3 - 0 marks?
 # TODO: seen 6: outputs contain a bunch of duplicates packages in each state, last output state does not satisfy all constraints, remaining constraints are duplicates, possibly missing valid states - 0 marks
