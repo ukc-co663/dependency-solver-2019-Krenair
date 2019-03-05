@@ -20,6 +20,7 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument('repository', type=argparse.FileType('r'))
 argparser.add_argument('state', type=argparse.FileType('r'))
 argparser.add_argument('constraints', type=argparse.FileType('r'))
+argparser.add_argument('--dump-cost', action='store_true')
 args = argparser.parse_args()
 
 init_repo_desc = json.load(args.repository)
@@ -153,3 +154,6 @@ for commands, state in get_states(init_repo_desc, init_state, init_constraints):
 
 (final_commands, final_cost), *_ = sorted(commands_out, key=lambda t: t[1])
 print(json.dumps(final_commands))
+
+if args.dump_cost:
+    print('cost', final_cost)
