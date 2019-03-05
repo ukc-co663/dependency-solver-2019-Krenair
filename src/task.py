@@ -50,6 +50,14 @@ def split_namever(namever):
     else:
         return namever, lambda _: True
 
+def find_package_in_repo(repo_desc, namever):
+    name, ver_match_f = split_namever(namever)
+    return filter(lambda p: p['name'] == name and ver_match_f(p['version']), repo_desc)
+
+def find_package_in_state(state, namever):
+    name, ver_match_f = split_namever(namever)
+    return filter(lambda p: p[0] == name and ver_match_f(p[1]), state)
+
 def is_state_valid(repo_desc, state):
     # not having any conflicts, all dependencies being satisfied
     #print('considering state', state)
@@ -58,20 +66,14 @@ def is_state_valid(repo_desc, state):
         for repo_package in repo_desc:
             if package == repo_package['name'] and version == repo_package['version']:
                 for conflict_namever in repo_package.get('conflicts', []):
-                    name, version_match_f = split_namever(conflict_namever)
-                    for installed_name, installed_version in state:
-                        if installed_name == name and version_match_f(installed_version):
-                            return False
+                    if len(list(find_package_in_state(state, conflict_namever))):
+                        return False
                 for dependency_group in repo_package.get('depends', []):
                     dg_satisfied = False
                     for dependency_namever in dependency_group:
                         # one of these dependencies in each dependency group must be present
-                        name, version_match_f = split_namever(dependency_namever)
-                        for installed_name, installed_version in state:
-                            if installed_name == name and version_match_f(installed_version):
-                                dg_satisfied = True
-                                break
-                        if dg_satisfied:
+                        if len(list(find_package_in_state(state, dependency_namever))):
+                            dg_satisfied = True
                             break
                     if not dg_satisfied:
                         #print('Dependency missing', repo_package, dependency_group, state)
@@ -102,29 +104,26 @@ def get_states(repo_desc, state, constraints):
         elif constraint[0] == '+':
             #print('present', constraint[1:])
             namever = constraint[1:]
-            name, version_match_f = split_namever(namever)
-            for package in repo_desc:
-                if package['name'] == name and version_match_f(package['version']):
-                    new_package = package['name'], package['version']
-                    possible_states = [(['+{}={}'.format(*new_package)], state + [new_package])]
-                    for dependency_group in package.get('depends', []):
-                        new_possible_states = []
-                        for dependency_namever in dependency_group:
-                            dependency_name, dependency_version_match_f = split_namever(dependency_namever)
-                            for potential_dependency_package in repo_desc:
-                                if potential_dependency_package['name'] == dependency_name and dependency_version_match_f(potential_dependency_package['version']):
-                                    for possible_commands, possible_state in possible_states:
-                                        extra_state = potential_dependency_package['name'], potential_dependency_package['version']
-                                        # TODO: add in constraints for dependencies?
-                                        for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], constraints):
-                                            new_possible_states.append((['+{}={}'.format(*extra_state)] + possible_commands + subcommands, substate))
-                        possible_states = new_possible_states
-                    for possible_commands, possible_state in possible_states:
-                        for subcommands, substate in get_states(repo_desc, possible_state, constraints):
-                            if new_package not in substate:
-                                substate.append(new_package)
-                                subcommands.append('+{}={}'.format(*new_package))
-                            yield possible_commands + subcommands, substate
+            for package in find_package_in_repo(repo_desc, namever):
+                new_package = package['name'], package['version']
+                possible_states = [(['+{}={}'.format(*new_package)], state + [new_package])]
+                for dependency_group in package.get('depends', []):
+                    new_possible_states = []
+                    for dependency_namever in dependency_group:
+                        dependency_name, dependency_version_match_f = split_namever(dependency_namever)
+                        for potential_dependency_package in find_package_in_repo(repo_desc, dependency_namever):
+                            for possible_commands, possible_state in possible_states:
+                                extra_state = potential_dependency_package['name'], potential_dependency_package['version']
+                                # TODO: add in constraints for dependencies?
+                                for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], constraints):
+                                    new_possible_states.append((['+{}={}'.format(*extra_state)] + possible_commands + subcommands, substate))
+                    possible_states = new_possible_states
+                for possible_commands, possible_state in possible_states:
+                    for subcommands, substate in get_states(repo_desc, possible_state, constraints):
+                        if new_package not in substate:
+                            substate.append(new_package)
+                            subcommands.append('+{}={}'.format(*new_package))
+                        yield possible_commands + subcommands, substate
         else:
             assert False # nonexistent constraint type
 
