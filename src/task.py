@@ -83,6 +83,14 @@ def is_state_valid(repo_desc, state):
             assert False # package name+version combo does not exist (!)
     return True
 
+def handle_dgs(dgs, parents=[]):
+    if len(dgs) == 0:
+        yield parents
+    else:
+        dg, *more_dgs = dgs
+        for d in dg:
+            yield from handle_dgs(more_dgs, parents + [d])
+
 def get_states(repo_desc, state, constraints):
     if len(constraints) == 0:
         yield [], state
@@ -107,8 +115,12 @@ def get_states(repo_desc, state, constraints):
                             for possible_commands, possible_state in possible_states:
                                 extra_state = potential_dependency_package['name'], potential_dependency_package['version']
                                 # TODO: add in constraints for dependencies?
-                                for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], constraints):
-                                    new_possible_states.append((['+{}={}'.format(*extra_state)] + possible_commands + subcommands, substate))
+                                depend_depends = potential_dependency_package.get('depends', [])
+                                #print('will need to account for conflicts', potential_dependency_package.get('conflicts', []))
+                                for extra_constraints in list(handle_dgs(depend_depends)) + [[]]:
+                                    extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
+                                    for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], extra_constraints + constraints):
+                                        new_possible_states.append((['+{}={}'.format(*extra_state)] + possible_commands + subcommands, substate))
                     possible_states = new_possible_states
                 for possible_commands, possible_state in possible_states:
                     for subcommands, substate in get_states(repo_desc, possible_state, constraints):
