@@ -2,7 +2,7 @@
 # Author: Alex Monk <am2121@kent.ac.uk>
 # For CO633
 # Solve seen tests:
-# seen 0: all output states look OK - +1 mark
+# seen 0: all output states look OK - +2 marks?
 # TODO: seen 1: this kills the computer - 0 marks
 # TODO: seen 2: no states output, but all tests should have solutions - 0 marks
 # TODO: seen 3: produces one good result result but not the other, A and D... probably because A has not been installed by the time it considers D? loop? - 0 marks
@@ -11,7 +11,7 @@
 # TODO: seen 6: outputs contain a bunch of duplicates packages in each state, last output state does not satisfy all constraints, remaining constraints are duplicates, possibly missing valid states - 0 marks
 # TODO: seen 7: no states output, but all tests should have solutions - 0 marks
 # TODO: seen 8: no states output, but all tests should have solutions - 0 marks
-# seen 9: might work - +1 mark
+# seen 9: might work - +2 mark?
 # TODO: output each state in the right order?
 # TODO: keep track of installations/removals in each call
 # TODO: assign cost to each potential solution and use it to return best result
@@ -128,7 +128,16 @@ def get_states(repo_desc, state, constraints):
         else:
             assert False # nonexistent constraint type
 
+package_costs = {}
+for package in init_repo_desc:
+    package_costs[package['name'], package['version']] = package['size']
+
+commands_out = []
 for state in get_states(init_repo_desc, init_state, init_constraints):
     if is_state_valid(init_repo_desc, state):
-        print(json.dumps(['+{}={}'.format(p, v) for (p, v) in state]))
-        break
+        cost = sum(package_costs[p, v] for p, v in state)
+        install_commands = ['+{}={}'.format(p, v) for (p, v) in state]
+        commands_out.append((install_commands, cost))
+
+(final_commands, _), *_ = sorted(commands_out, key=lambda t: t[1])
+print(json.dumps(final_commands))
