@@ -12,9 +12,7 @@
 # TODO: seen 7: no states output, but all tests should have solutions - 0 marks
 # TODO: seen 8: no states output, but all tests should have solutions - 0 marks
 # seen 9: might work - +2 mark?
-# TODO: output each state in the right order?
-# TODO: keep track of installations/removals in each call
-# TODO: assign cost to each potential solution and use it to return best result
+# TODO: output each state/commands in the right order?
 import copy
 import json
 import sys
@@ -86,7 +84,7 @@ def is_state_valid(repo_desc, state):
 
 def get_states(repo_desc, state, constraints):
     if len(constraints) == 0:
-        yield state
+        yield [], state
     else:
         constraint = constraints.pop()
         if constraint[0] == '-':
@@ -100,31 +98,34 @@ def get_states(repo_desc, state, constraints):
                     to_remove_from_state.append(installed_package)
             for package_to_remove in to_remove_from_state:
                 state.remove(package_to_remove)
-            yield from get_states(repo_desc, state, constraints)
+            for subcommands, substate in get_states(repo_desc, state, constraints):
+                yield ['-{}={}'.format(*p) for p in to_remove_from_state] + subcommands, substate
         elif constraint[0] == '+':
             #print('present', constraint[1:])
             namever = constraint[1:]
             name, version_match_f = split_namever(namever)
             for package in repo_desc:
                 if package['name'] == name and version_match_f(package['version']):
-                    possible_states = [state + [(package['name'], package['version'])]]
+                    new_package = package['name'], package['version']
+                    possible_states = [(['+{}={}'.format(*new_package)], state + [new_package])]
                     for dependency_group in package.get('depends', []):
                         new_possible_states = []
                         for dependency_namever in dependency_group:
                             dependency_name, dependency_version_match_f = split_namever(dependency_namever)
                             for potential_dependency_package in repo_desc:
                                 if potential_dependency_package['name'] == dependency_name and dependency_version_match_f(potential_dependency_package['version']):
-                                    for possible_state in possible_states:
+                                    for possible_commands, possible_state in possible_states:
                                         extra_state = potential_dependency_package['name'], potential_dependency_package['version']
                                         # TODO: add in constraints for dependencies?
-                                        new_possible_states += list(get_states(repo_desc, possible_state + [extra_state], constraints))
+                                        for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], constraints):
+                                            new_possible_states.append((['+{}={}'.format(*extra_state)] + possible_commands + subcommands, substate))
                         possible_states = new_possible_states
-                    for possible_state in possible_states:
-                        for substate in get_states(repo_desc, possible_state, constraints):
-                            new_package = name, package['version']
+                    for possible_commands, possible_state in possible_states:
+                        for subcommands, substate in get_states(repo_desc, possible_state, constraints):
                             if new_package not in substate:
                                 substate.append(new_package)
-                            yield substate
+                                subcommands.append('+{}={}'.format(*new_package))
+                            yield possible_commands + subcommands, substate
         else:
             assert False # nonexistent constraint type
 
@@ -133,11 +134,10 @@ for package in init_repo_desc:
     package_costs[package['name'], package['version']] = package['size']
 
 commands_out = []
-for state in get_states(init_repo_desc, init_state, init_constraints):
+for commands, state in get_states(init_repo_desc, init_state, init_constraints):
     if is_state_valid(init_repo_desc, state):
-        cost = sum(package_costs[p, v] for p, v in state)
-        install_commands = ['+{}={}'.format(p, v) for (p, v) in state]
-        commands_out.append((install_commands, cost))
+        cost = sum(package_costs[tuple(map(lambda s: s.strip(), c[1:].split('=')))] for c in commands if c[0] == '+') + sum(10**6 for c in commands if c[0] == '-')
+        commands_out.append((commands, cost))
 
-(final_commands, _), *_ = sorted(commands_out, key=lambda t: t[1])
+(final_commands, final_cost), *_ = sorted(commands_out, key=lambda t: t[1])
 print(json.dumps(final_commands))
