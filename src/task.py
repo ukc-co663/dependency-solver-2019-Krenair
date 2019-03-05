@@ -97,8 +97,7 @@ def get_states(repo_desc, state, constraints):
                 yield ['-{}={}'.format(*p) for p in to_remove_from_state] + subcommands, substate
         elif constraint[0] == '+':
             #print('present', constraint[1:])
-            namever = constraint[1:]
-            for package in find_packages_in_repo(repo_desc, namever):
+            for package in find_packages_in_repo(repo_desc, constraint[1:]):
                 new_package = package['name'], package['version']
                 possible_states = [(['+{}={}'.format(*new_package)], state + [new_package])]
                 for dependency_group in package.get('depends', []):
