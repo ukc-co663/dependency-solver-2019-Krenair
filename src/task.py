@@ -127,10 +127,10 @@ def get_states(repo_desc, state, constraints):
                                         continue
                                     # TODO: add in constraints for dependencies?
                                     depend_depends = potential_dependency_package.get('depends', [])
-                                    print('considering', depend_depends)
-                                    print('for', new_package, (potential_dependency_package['name'], potential_dependency_package['version']))
+                                    #print('considering', depend_depends)
+                                    #print('for', new_package, (potential_dependency_package['name'], potential_dependency_package['version']))
                                     #print('will need to account for conflicts', potential_dependency_package.get('conflicts', []))
-                                    for extra_constraints in list(handle_dgs(depend_depends)) + [[]]:
+                                    for extra_constraints in list(handle_dgs(depend_depends)):
                                         extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
                                         #print('checking subdependencies', possible_state + [extra_state])
                                         #print('constraints', extra_constraints + constraints)
