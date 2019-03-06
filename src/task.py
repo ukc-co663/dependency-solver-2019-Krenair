@@ -12,7 +12,6 @@
 # seen 7 - +2 marks
 # TODO: seen 8: this kills the computer - 0 marks
 # seen 9 - +2 marks
-# TODO: output each state/commands in the right order?
 import argparse
 import json
 
