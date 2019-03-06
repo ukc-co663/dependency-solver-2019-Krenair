@@ -63,7 +63,7 @@ def find_packages_in_state(state, namever):
 
 def gen_has_item(g):
     sentinel = object()
-    return next(g, sentinel) is sentinel
+    return next(g, sentinel) is not sentinel
 
 def is_state_valid(repo_desc, state):
     # not having any conflicts, all dependencies being satisfied
@@ -154,7 +154,6 @@ for commands, state in get_states(init_repo_desc, init_state, init_constraints):
         cost = sum(package_costs[tuple(map(lambda s: s.strip(), c[1:].split('=')))] for c in commands if c[0] == '+') + sum(10**6 for c in commands if c[0] == '-')
         #print('commands', commands)
         #print('state', state)
-        #print('cost', cost)
         commands_out.append((commands, cost))
     #else:
         #print('invalid!')
