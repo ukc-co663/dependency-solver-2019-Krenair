@@ -20,7 +20,7 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument('repository', type=argparse.FileType('r'))
 argparser.add_argument('state', type=argparse.FileType('r'))
 argparser.add_argument('constraints', type=argparse.FileType('r'))
-argparser.add_argument('--dump-cost', action='store_true')
+argparser.add_argument('--debug', action='store_true')
 args = argparser.parse_args()
 
 init_repo_desc = json.load(args.repository)
@@ -118,23 +118,27 @@ def get_states(repo_desc, state, constraints):
                 for package in find_packages_in_repo(repo_desc, constraint[1:]):
                     new_package = package['name'], package['version']
                     cmd = '+{}={}'.format(*new_package)
-                    #print('considering', new_package)
                     assert new_package not in state
                     depends = package.get('depends', [])
-                    #print('considering', depends)
-                    #print('for', new_package)
-                    #print('will need to account for conflicts', depends.get('conflicts', []))
+                    conflicts = package.get('conflicts', [])
+                    if args.debug:
+                        print('considering', new_package)
+                        print('depends', depends)
+                        if len(conflicts):
+                            print('TODO: will need to account for conflicts', conflicts) # TODO
                     for extra_constraints in list(handle_dgs(depends)):
-                        #print('extra_constraints', extra_constraints)
                         extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
-                        #print('constraints', extra_constraints + constraints)
-                        #print('looking for subdependencies with state', state)
+                        if args.debug:
+                            print('extra_constraints', extra_constraints)
+                            print('all constraints', extra_constraints + constraints)
+                            print('looking for subdependencies with state', state)
                         for subcommands, substate in get_states(repo_desc, copy.deepcopy(state), extra_constraints + constraints):
                             if cmd not in subcommands:
                                 subcommands.append(cmd)
                                 substate.append(new_package)
                             yield subcommands, list(set(substate))
-                    #print('-----')
+                    if args.debug:
+                        print('-----')
         else:
             assert False # nonexistent constraint type
 
@@ -144,19 +148,22 @@ for package in init_repo_desc:
 
 commands_out = []
 for commands, state in get_states(init_repo_desc, copy.deepcopy(init_state), init_constraints):
-    #print('potential commands', commands)
-    #print('potential state', state)
+    if args.debug:
+        print('potential commands', commands)
+        print('potential state', state)
     if is_state_valid(init_repo_desc, state):
         cost = sum(package_costs[tuple(map(lambda s: s.strip(), c[1:].split('=')))] for c in commands if c[0] == '+') + sum(10**6 for c in commands if c[0] == '-')
-        #print('commands', commands)
-        #print('state', state)
+        if args.debug:
+            print('commands', commands)
+            print('state', state)
         commands_out.append((commands, cost))
-    #else:
-        #print('invalid!')
-    #print('---')
+    elif args.debug:
+        print('invalid!')
+    if args.debug:
+        print('---')
 
 (final_commands, final_cost), *_ = sorted(commands_out, key=lambda t: t[1])
 print(json.dumps(final_commands))
 
-if args.dump_cost:
+if args.debug:
     print('cost', final_cost)
