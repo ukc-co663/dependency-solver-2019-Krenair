@@ -4,12 +4,12 @@
 # Solve seen tests:
 # seen 0 - +2 marks
 # TODO: seen 1: this kills the computer - 0 marks
-# TODO: seen 2: imperfect solution - +1 marks
+# TODO: seen 2: imperfect solution - +1 marks - NOPE
 # TODO: seen 3: originally produced one good result result but not the other, A,B,D... probably because A has not been installed by the time it considers D? loop? used to work but dependency dependency work caused recursion errors - 0 marks
 # TODO: seen 4: no states output, but all tests should have solutions - 0 marks
 # seen 5: looks good, but could remove initial state B=3 and get lots more pairs such as B=2,A=3 and B=1,A=2 and B=1,A=3 - +2 marks
 # TODO: seen 6: used to output a bunch of duplicates packages in each state, last output state did not satisfy all constraints, remaining constraints were duplicates, possibly missing valid states. now recursion error since dependency dependency work - 0 marks
-# seen 7 - +2 marks
+# seen 7 - +2 marks - NOPE
 # TODO: seen 8: this kills the computer - 0 marks
 # seen 9 - +2 marks
 # TODO: output each state/commands in the right order?
@@ -61,6 +61,10 @@ def find_packages_in_state(state, namever):
     name, ver_match_f = split_namever(namever)
     return filter(lambda p: p[0] == name and ver_match_f(p[1]), state)
 
+def gen_has_item(g):
+    sentinel = object()
+    return next(g, sentinel) is sentinel
+
 def is_state_valid(repo_desc, state):
     # not having any conflicts, all dependencies being satisfied
     #print('considering state', state)
@@ -69,13 +73,13 @@ def is_state_valid(repo_desc, state):
         for repo_package in repo_desc:
             if package == repo_package['name'] and version == repo_package['version']:
                 for conflict_namever in repo_package.get('conflicts', []):
-                    if len(list(find_packages_in_state(state, conflict_namever))):
+                    if gen_has_item(find_packages_in_state(state, conflict_namever)):
                         return False
                 for dependency_group in repo_package.get('depends', []):
                     dg_satisfied = False
                     for dependency_namever in dependency_group:
                         # one of these dependencies in each dependency group must be present
-                        if len(list(find_packages_in_state(state, dependency_namever))):
+                        if gen_has_item(find_packages_in_state(state, dependency_namever)):
                             dg_satisfied = True
                             break
                     if not dg_satisfied:
@@ -117,11 +121,15 @@ def get_states(repo_desc, state, constraints):
                         for potential_dependency_package in find_packages_in_repo(repo_desc, dependency_namever):
                             for possible_commands, possible_state in possible_states:
                                 extra_state = potential_dependency_package['name'], potential_dependency_package['version']
+                                if extra_state in state:
+                                    continue
                                 # TODO: add in constraints for dependencies?
                                 depend_depends = potential_dependency_package.get('depends', [])
                                 #print('will need to account for conflicts', potential_dependency_package.get('conflicts', []))
                                 for extra_constraints in list(handle_dgs(depend_depends)) + [[]]:
                                     extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
+                                    #print('checking subdependencies', possible_state + [extra_state])
+                                    #print('constraints', extra_constraints + constraints)
                                     for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], extra_constraints + constraints):
                                         new_possible_states.append((['+{}={}'.format(*extra_state)] + possible_commands + subcommands, substate))
                     possible_states = new_possible_states
