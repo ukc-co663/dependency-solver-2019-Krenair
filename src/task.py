@@ -9,7 +9,7 @@
 # TODO: seen 4: no states output, but all tests should have solutions - 0 marks
 # seen 5: looks good, but could remove initial state B=3 and get lots more pairs such as B=2,A=3 and B=1,A=2 and B=1,A=3 - +2 marks
 # TODO: seen 6: used to output a bunch of duplicates packages in each state, last output state did not satisfy all constraints, remaining constraints were duplicates, possibly missing valid states. now no results - 0 marks
-# seen 7 - +2 marks - interestingly this produces the correct cost (41168) and a valid state, but I think the ordering is completely broken.
+# seen 7 - +2 marks
 # TODO: seen 8: this kills the computer - 0 marks
 # seen 9 - +2 marks
 # TODO: output each state/commands in the right order?
