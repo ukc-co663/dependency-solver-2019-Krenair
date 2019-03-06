@@ -5,11 +5,11 @@
 # seen 0 - +2 marks
 # TODO: seen 1: this kills the computer - 0 marks
 # TODO: seen 2: imperfect solution - +1 marks - NOPE
-# TODO: seen 3: originally produced one good result result but not the other, A,B,D... probably because A has not been installed by the time it considers D? loop? used to work but dependency dependency work caused recursion errors - 0 marks
+# seen 3: originally produced one good result result but not the other, A,B,D... probably because A has not been installed by the time it considers D? loop? - +2 marks
 # TODO: seen 4: no states output, but all tests should have solutions - 0 marks
 # seen 5: looks good, but could remove initial state B=3 and get lots more pairs such as B=2,A=3 and B=1,A=2 and B=1,A=3 - +2 marks
-# TODO: seen 6: used to output a bunch of duplicates packages in each state, last output state did not satisfy all constraints, remaining constraints were duplicates, possibly missing valid states. now recursion error since dependency dependency work - 0 marks
-# seen 7 - +2 marks - NOPE
+# TODO: seen 6: used to output a bunch of duplicates packages in each state, last output state did not satisfy all constraints, remaining constraints were duplicates, possibly missing valid states. now no results - 0 marks
+# seen 7 - +2 marks - interestingly this produces the correct cost (41168) and a valid state, but I think the ordering is completely broken.
 # TODO: seen 8: this kills the computer - 0 marks
 # seen 9 - +2 marks
 # TODO: output each state/commands in the right order?
@@ -131,7 +131,7 @@ def get_states(repo_desc, state, constraints):
                                     #print('checking subdependencies', possible_state + [extra_state])
                                     #print('constraints', extra_constraints + constraints)
                                     for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], extra_constraints + constraints):
-                                        new_possible_states.append((['+{}={}'.format(*extra_state)] + possible_commands + subcommands, substate))
+                                        new_possible_states.append((subcommands + ['+{}={}'.format(*extra_state)] + possible_commands, substate))
                     possible_states = new_possible_states
                 for possible_commands, possible_state in possible_states:
                     for subcommands, substate in get_states(repo_desc, possible_state, constraints):
