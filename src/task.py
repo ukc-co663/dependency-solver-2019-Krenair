@@ -131,8 +131,8 @@ def get_states(repo_desc, state, constraints):
                         for subcommands, substate in get_states(repo_desc, state, extra_constraints + constraints):
                             if cmd not in subcommands:
                                 subcommands.append(cmd)
-                                substate += state
-                            yield subcommands, list(set(state))
+                                substate.append(new_package)
+                            yield subcommands, state + substate
                     #print('-----')
         else:
             assert False # nonexistent constraint type
