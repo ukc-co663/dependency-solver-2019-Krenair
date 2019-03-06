@@ -116,6 +116,7 @@ def get_states(repo_desc, state, constraints):
                 #print('present', constraint[1:])
                 for package in find_packages_in_repo(repo_desc, constraint[1:]):
                     new_package = package['name'], package['version']
+                    cmd = '+{}={}'.format(*new_package)
                     #print('considering', new_package)
                     assert new_package not in state
                     depends = package.get('depends', [])
@@ -128,7 +129,10 @@ def get_states(repo_desc, state, constraints):
                         #print('constraints', extra_constraints + constraints)
                         #print('looking for subdependencies with state', state)
                         for subcommands, substate in get_states(repo_desc, state, extra_constraints + constraints):
-                            yield (subcommands + ['+{}={}'.format(*new_package)]), list(set(substate + state))
+                            if cmd not in subcommands:
+                                subcommands.append(cmd)
+                                substate += state
+                            yield subcommands, list(set(state))
                     #print('-----')
         else:
             assert False # nonexistent constraint type
