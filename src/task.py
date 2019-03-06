@@ -110,34 +110,39 @@ def get_states(repo_desc, state, constraints):
             for subcommands, substate in get_states(repo_desc, state, constraints):
                 yield ['-{}={}'.format(*p) for p in to_remove_from_state] + subcommands, substate
         elif constraint[0] == '+':
-            #print('present', constraint[1:])
-            for package in find_packages_in_repo(repo_desc, constraint[1:]):
-                new_package = package['name'], package['version']
-                possible_states = [(['+{}={}'.format(*new_package)], state + [new_package])]
-                for dependency_group in package.get('depends', []):
-                    new_possible_states = []
-                    for dependency_namever in dependency_group:
-                        for potential_dependency_package in find_packages_in_repo(repo_desc, dependency_namever):
-                            for possible_commands, possible_state in possible_states:
-                                extra_state = potential_dependency_package['name'], potential_dependency_package['version']
-                                if extra_state in state:
-                                    continue
-                                # TODO: add in constraints for dependencies?
-                                depend_depends = potential_dependency_package.get('depends', [])
-                                #print('will need to account for conflicts', potential_dependency_package.get('conflicts', []))
-                                for extra_constraints in list(handle_dgs(depend_depends)) + [[]]:
-                                    extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
-                                    #print('checking subdependencies', possible_state + [extra_state])
-                                    #print('constraints', extra_constraints + constraints)
-                                    for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], extra_constraints + constraints):
-                                        new_possible_states.append((subcommands + ['+{}={}'.format(*extra_state)] + possible_commands, substate))
-                    possible_states = new_possible_states
-                for possible_commands, possible_state in possible_states:
-                    for subcommands, substate in get_states(repo_desc, possible_state, constraints):
-                        if new_package not in substate:
-                            substate.append(new_package)
-                            subcommands.append('+{}={}'.format(*new_package))
-                        yield possible_commands + subcommands, substate
+            if gen_has_item(find_packages_in_state(state, constraint[1:])):
+                yield from get_states(repo_desc, state, constraints)
+            else:
+                #print('present', constraint[1:])
+                for package in find_packages_in_repo(repo_desc, constraint[1:]):
+                    new_package = package['name'], package['version']
+                    possible_states = [(['+{}={}'.format(*new_package)], state + [new_package])]
+                    for dependency_group in package.get('depends', []):
+                        new_possible_states = []
+                        for dependency_namever in dependency_group:
+                            for potential_dependency_package in find_packages_in_repo(repo_desc, dependency_namever):
+                                for possible_commands, possible_state in possible_states:
+                                    extra_state = potential_dependency_package['name'], potential_dependency_package['version']
+                                    if extra_state in state:
+                                        continue
+                                    # TODO: add in constraints for dependencies?
+                                    depend_depends = potential_dependency_package.get('depends', [])
+                                    print('considering', depend_depends)
+                                    print('for', new_package, (potential_dependency_package['name'], potential_dependency_package['version']))
+                                    #print('will need to account for conflicts', potential_dependency_package.get('conflicts', []))
+                                    for extra_constraints in list(handle_dgs(depend_depends)) + [[]]:
+                                        extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
+                                        #print('checking subdependencies', possible_state + [extra_state])
+                                        #print('constraints', extra_constraints + constraints)
+                                        for subcommands, substate in get_states(repo_desc, possible_state + [extra_state], extra_constraints + constraints):
+                                            new_possible_states.append((subcommands + ['+{}={}'.format(*extra_state)] + possible_commands, substate))
+                        possible_states = new_possible_states
+                    for possible_commands, possible_state in possible_states:
+                        for subcommands, substate in get_states(repo_desc, possible_state, constraints):
+                            if new_package not in substate:
+                                substate.append(new_package)
+                                subcommands.append('+{}={}'.format(*new_package))
+                            yield possible_commands + subcommands, substate
         else:
             assert False # nonexistent constraint type
 
