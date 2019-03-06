@@ -13,6 +13,7 @@
 # TODO: seen 8: no states output, but all tests should have solutions - 0 marks
 # seen 9 - +2 marks
 import argparse
+import copy
 import json
 
 argparser = argparse.ArgumentParser()
@@ -107,11 +108,11 @@ def get_states(repo_desc, state, constraints):
             to_remove_from_state = list(find_packages_in_state(state, constraint[1:]))
             for package_to_remove in to_remove_from_state:
                 state.remove(package_to_remove)
-            for subcommands, substate in get_states(repo_desc, state, constraints):
+            for subcommands, substate in get_states(repo_desc, copy.deepcopy(state), constraints):
                 yield ['-{}={}'.format(*p) for p in to_remove_from_state] + subcommands, substate
         elif constraint[0] == '+':
             if gen_has_item(find_packages_in_state(state, constraint[1:])):
-                yield from get_states(repo_desc, state, constraints)
+                yield from get_states(repo_desc, copy.deepcopy(state), constraints)
             else:
                 #print('present', constraint[1:])
                 for package in find_packages_in_repo(repo_desc, constraint[1:]):
@@ -128,11 +129,11 @@ def get_states(repo_desc, state, constraints):
                         extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
                         #print('constraints', extra_constraints + constraints)
                         #print('looking for subdependencies with state', state)
-                        for subcommands, substate in get_states(repo_desc, state, extra_constraints + constraints):
+                        for subcommands, substate in get_states(repo_desc, copy.deepcopy(state), extra_constraints + constraints):
                             if cmd not in subcommands:
                                 subcommands.append(cmd)
                                 substate.append(new_package)
-                            yield subcommands, state + substate
+                            yield subcommands, list(set(substate))
                     #print('-----')
         else:
             assert False # nonexistent constraint type
@@ -142,7 +143,7 @@ for package in init_repo_desc:
     package_costs[package['name'], package['version']] = package['size']
 
 commands_out = []
-for commands, state in get_states(init_repo_desc, init_state, init_constraints):
+for commands, state in get_states(init_repo_desc, copy.deepcopy(init_state), init_constraints):
     #print('potential commands', commands)
     #print('potential state', state)
     if is_state_valid(init_repo_desc, state):
