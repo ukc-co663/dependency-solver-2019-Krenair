@@ -105,9 +105,7 @@ def get_states(repo_desc, state, constraints):
         if constraint[0] == '-':
             #print('absent', constraint[1:])
             to_remove_from_state = list(find_packages_in_state(state, constraint[1:]))
-            state = state[:] # copy
-            for package_to_remove in to_remove_from_state:
-                state.remove(package_to_remove)
+            state = list(set(state) - set(to_remove_from_state))
             for subcommands, substate in get_states(repo_desc, state, constraints):
                 yield ['-{}={}'.format(*p) for p in to_remove_from_state] + subcommands, substate
         elif constraint[0] == '+':
