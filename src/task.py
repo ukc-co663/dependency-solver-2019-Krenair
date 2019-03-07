@@ -5,7 +5,7 @@
 # seen 0 - +2 marks
 # TODO: seen 1: this kills the computer - 0 marks
 # seen 2 - +2 marks
-# TODO: seen 3: originally produced one good result result but not the other, A,B,D... probably because A has not been installed by the time it considers D? loop? - 0 marks
+# seen 3 - +2 marks
 # seen 4 - +2 marks
 # seen 5 - +2 marks
 # TODO: seen 6: used to output a bunch of duplicates packages in each state, last output state did not satisfy all constraints, remaining constraints were duplicates, possibly missing valid states. now recursion error - 0 marks
@@ -129,11 +129,14 @@ def get_states(repo_desc, state, constraints):
                             print('extra_constraints', extra_constraints)
                             print('all constraints', extra_constraints + constraints)
                             print('looking for subdependencies with state', state)
-                        for subcommands, substate in get_states(repo_desc, state, conflicts_constraints + extra_constraints + constraints):
-                            if cmd not in subcommands:
-                                subcommands = subcommands + [cmd]
-                                substate = substate + [new_package]
-                            yield subcommands, list(set(substate))
+                        try:
+                            for subcommands, substate in get_states(repo_desc, state, conflicts_constraints + extra_constraints + constraints):
+                                if cmd not in subcommands:
+                                    subcommands = subcommands + [cmd]
+                                    substate = substate + [new_package]
+                                yield subcommands, list(set(substate))
+                        except RecursionError:
+                            return [] # give up, hopefully another branch will handle it - this handles the seen-3 problem by killing the A -> B -> D -> A dependency loop and forcing only the A -> C one to be considered
                     if args.debug:
                         print('-----')
         else:
