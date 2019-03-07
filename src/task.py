@@ -33,22 +33,30 @@ init_constraints = json.load(args.constraints)
 #print('Initial state:', init_state)
 #print('Initial constraints:', init_constraints)
 
+def normalise_version(ver):
+    return '.'.join(map(str, map(int, ver.split('.'))))
+
 def split_namever(namever):
     if '<=' in namever:
         name, version = namever.split('<=')
-        return name, lambda pv: pv <= version
+        version = normalise_version(version)
+        return name, lambda pv: normalise_version(pv) <= version
     elif '>=' in namever:
         name, version = namever.split('>=')
-        return name, lambda pv: pv >= version
+        version = normalise_version(version)
+        return name, lambda pv: normalise_version(pv) >= version
     elif '<' in namever:
         name, version = namever.split('<')
-        return name, lambda pv: pv < version
+        version = normalise_version(version)
+        return name, lambda pv: normalise_version(pv) < version
     elif '>' in namever:
         name, version = namever.split('>')
-        return name, lambda pv: pv > version
+        version = normalise_version(version)
+        return name, lambda pv: normalise_version(pv) > version
     elif '=' in namever:
         name, version = namever.split('=')
-        return name, lambda pv: pv == version
+        version = normalise_version(version)
+        return name, lambda pv: normalise_version(pv) == version
     else:
         return namever, lambda _: True
 
