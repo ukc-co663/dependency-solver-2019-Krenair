@@ -121,18 +121,17 @@ def get_states(repo_desc, state, constraints):
                     assert new_package not in state
                     depends = package.get('depends', [])
                     conflicts = package.get('conflicts', [])
+                    conflicts_constraints = list(map(lambda x: '-' + x, conflicts))
                     if args.debug:
                         print('considering', new_package)
                         print('depends', depends)
-                        if len(conflicts):
-                            print('TODO: will need to account for conflicts', conflicts) # TODO
                     for extra_constraints in list(handle_dgs(depends)):
                         extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
                         if args.debug:
                             print('extra_constraints', extra_constraints)
                             print('all constraints', extra_constraints + constraints)
                             print('looking for subdependencies with state', state)
-                        for subcommands, substate in get_states(repo_desc, copy.deepcopy(state), extra_constraints + constraints):
+                        for subcommands, substate in get_states(repo_desc, copy.deepcopy(state), conflicts_constraints + extra_constraints + constraints):
                             if cmd not in subcommands:
                                 subcommands.append(cmd)
                                 substate.append(new_package)
