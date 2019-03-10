@@ -1,17 +1,5 @@
 #!/usr/bin/python3
-# Author: Alex Monk <am2121@kent.ac.uk>
-# For CO633
-# Solve seen tests:
-# seen 0 - +2 marks
-# TODO: seen 1: this kills the computer - 0 marks
-# seen 2 - +2 marks
-# seen 3 - +2 marks
-# seen 4 - +2 marks
-# seen 5 - +2 marks
-# TODO: seen 6: used to output a bunch of duplicates packages in each state, last output state did not satisfy all constraints, remaining constraints were duplicates, possibly missing valid states. now recursion error - 0 marks
-# seen 7 - +2 marks
-# seen 8 - +2 marks
-# seen 9 - +2 marks
+# By Alex Monk <am2121@kent.ac.uk> for CO633, 2019
 import argparse
 import json
 
@@ -19,7 +7,6 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument('repository', type=argparse.FileType('r'))
 argparser.add_argument('state', type=argparse.FileType('r'))
 argparser.add_argument('constraints', type=argparse.FileType('r'))
-argparser.add_argument('--debug', action='store_true')
 args = argparser.parse_args()
 
 init_repo_desc = json.load(args.repository)
@@ -28,10 +15,6 @@ init_state = json.load(args.state)
 init_state = list(map(lambda s: tuple(s.split('=')), init_state))
 
 init_constraints = json.load(args.constraints)
-
-#print('Initial repository:', init_repo_desc)
-#print('Initial state:', init_state)
-#print('Initial constraints:', init_constraints)
 
 def normalise_version(ver):
     return '.'.join(map(str, map(int, ver.split('.'))))
@@ -74,8 +57,6 @@ def gen_has_item(g):
 
 def is_state_valid(repo_desc, state):
     # not having any conflicts, all dependencies being satisfied
-    #print('considering state', state)
-    #print(state)
     for package, version in state:
         for repo_package in repo_desc:
             if package == repo_package['name'] and version == repo_package['version']:
@@ -90,11 +71,8 @@ def is_state_valid(repo_desc, state):
                             dg_satisfied = True
                             break
                     if not dg_satisfied:
-                        #print('Dependency missing', repo_package, dependency_group, state)
                         return False
                 break
-        else:
-            assert False # package name+version combo does not exist (!)
     return True
 
 def handle_dgs(dgs, parents=[]):
@@ -111,7 +89,6 @@ def get_states(repo_desc, state, constraints):
     else:
         constraint = constraints.pop()
         if constraint[0] == '-':
-            #print('absent', constraint[1:])
             to_remove_from_state = list(find_packages_in_state(state, constraint[1:]))
             state = list(set(state) - set(to_remove_from_state))
             for subcommands, substate in get_states(repo_desc, state, constraints):
@@ -120,7 +97,6 @@ def get_states(repo_desc, state, constraints):
             if gen_has_item(find_packages_in_state(state, constraint[1:])):
                 yield from get_states(repo_desc, state, constraints)
             else:
-                #print('present', constraint[1:])
                 for package in find_packages_in_repo(repo_desc, constraint[1:]):
                     new_package = package['name'], package['version']
                     cmd = '+{}={}'.format(*new_package)
@@ -128,27 +104,16 @@ def get_states(repo_desc, state, constraints):
                     depends = package.get('depends', [])
                     conflicts = package.get('conflicts', [])
                     conflicts_constraints = list(map(lambda x: '-' + x, conflicts))
-                    if args.debug:
-                        print('considering', new_package)
-                        print('depends', depends)
                     for extra_constraints in list(handle_dgs(depends)):
                         extra_constraints = list(map(lambda x: '+' + x, extra_constraints))
-                        if args.debug:
-                            print('extra_constraints', extra_constraints)
-                            print('all constraints', extra_constraints + constraints)
-                            print('looking for subdependencies with state', state)
                         try:
                             for subcommands, substate in get_states(repo_desc, state, conflicts_constraints + extra_constraints + constraints):
-                                if cmd not in subcommands:
+                                if new_package not in substate:
                                     subcommands = subcommands + [cmd]
                                     substate = substate + [new_package]
                                 yield subcommands, list(set(substate))
                         except RecursionError:
                             return [] # give up, hopefully another branch will handle it - this handles the seen-3 problem by killing the A -> B -> D -> A dependency loop and forcing only the A -> C one to be considered
-                    if args.debug:
-                        print('-----')
-        else:
-            assert False # nonexistent constraint type
 
 package_costs = {}
 for package in init_repo_desc:
@@ -156,22 +121,9 @@ for package in init_repo_desc:
 
 commands_out = []
 for commands, state in get_states(init_repo_desc, init_state, init_constraints):
-    if args.debug:
-        print('potential commands', commands)
-        print('potential state', state)
     if is_state_valid(init_repo_desc, state):
         cost = sum(package_costs[tuple(map(lambda s: s.strip(), c[1:].split('=')))] for c in commands if c[0] == '+') + sum(10**6 for c in commands if c[0] == '-')
-        if args.debug:
-            print('commands', commands)
-            print('state', state)
         commands_out.append((commands, cost))
-    elif args.debug:
-        print('invalid!')
-    if args.debug:
-        print('---')
 
 (final_commands, final_cost), *_ = sorted(commands_out, key=lambda t: t[1])
 print(json.dumps(final_commands))
-
-if args.debug:
-    print('cost', final_cost)
